@@ -1,0 +1,34 @@
+{
+  "name": "hitchy-plugin-static",
+  "version": "0.0.1",
+  "description": "Hitchy plugin serving static files",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --ui tdd tests/**/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hitchyjs/plugin-static.git"
+  },
+  "keywords": [
+    "hitchy",
+    "static",
+    "files",
+    "plugin"
+  ],
+  "author": "Thomas Urban",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hitchyjs/plugin-static/issues"
+  },
+  "homepage": "https://github.com/hitchyjs/plugin-static#readme",
+  "devDependencies": {
+    "eslint": "^5.8.0",
+    "eslint-config-cepharum": "^1.0.8",
+    "eslint-plugin-promise": "^4.0.1",
+    "hitchy-server-dev-tools": "0.0.4",
+    "mocha": "^5.2.0",
+    "should": "^13.2.3",
+    "should-http": "^0.1.1"
+  }
+}
