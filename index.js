@@ -67,66 +67,113 @@ module.exports = {
  */
 function createProvider( folder ) {
 	return function( req, res ) {
-		if ( req.method !== "GET" ) {
-			res
-				.status( 400 )
-				.send( "GET method allowed, only" );
+		// check request method
+		let isFetching = false;
+		let isTesting = false;
+
+		switch ( req.method ) {
+			case "GET" :
+				isFetching = true;
+				break;
+
+			case "HEAD" :
+				isTesting = true;
+				break;
+		}
+
+		if ( !isFetching && !isTesting ) {
+			res.status( 400 ).send( "GET or HEAD method allowed, only" );
 			return;
 		}
 
+
+		// compile pathname of requested fule
 		const { route } = req.params;
 
 		const pathName = Path.resolve( folder, ...route || [] );
 		if ( pathName.indexOf( folder ) !== 0 ) {
-			res
-				.status( 400 )
-				.send( "invalid path name out of scope" );
+			res.status( 400 ).send( "invalid path name beyond document root" );
 			return;
 		}
 
-		const extensionMatch = /\..+$/.exec( pathName );
-		const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
+		if ( isFetching ) {
+			const stream = File.createReadStream( pathName, {
+				flags: "r",
+			} );
 
-		const stream = File.createReadStream( pathName, {
-			flags: "r",
-		} );
+			stream.on( "error", error => {
+				switch ( error.code ) {
+					case "ENOENT" :
+						res.status( 404 ).send( "no such file" );
+						break;
 
-		stream.on( "error", error => {
-			switch ( error.code ) {
-				case "ENOENT" :
-					res
-						.status( 404 )
-						.send( "no such file" );
-					break;
+					case "EISDIR" :
+						checkFolder( pathName, res );
+						break;
 
-				case "EISDIR" :
-					File.stat( Path.join( pathName, "index.html" ), ( statError, stat ) => {
-						if ( statError || !stat || !stat.isFile() ) {
-							res
-								.status( 404 )
-								.send( "no such file" );
-						} else {
-							res
-								.status( 301 )
-								.set( "Location", "./index.html" )
-								.send( "is directory, see index.html" );
-						}
-					} );
-					break;
+					default :
+						res.status( 500 ).send( "error on accessing file" );
+				}
+			} );
 
-				default :
-					res
-						.status( 500 )
-						.send( "reading file failed due to internal server error" );
-			}
-		} );
+			stream.once( "data", () => {
+				const extensionMatch = /\..+$/.exec( pathName );
+				const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
-		stream.once( "data", () => {
-			res.status( 200 );
-			res.set( "Content-Type", mime );
-		} );
+				res.status( 200 ).set( "Content-Type", mime );
+			} );
 
-		stream.pipe( res );
+			stream.pipe( res );
+		} else {
+			// request is testing for file existing
+			File.stat( pathName, ( error, stat ) => {
+				if ( error ) {
+					switch ( error.code ) {
+						case "ENOENT" :
+							res.status( 404 ).send( "no such file" );
+							break;
+
+						default :
+							res.status( 500 ).send( "error on accessing file" );
+					}
+				} else if ( stat.isDirectory() ) {
+					checkFolder( pathName, res );
+				} else if ( stat.isFile() ) {
+					const extensionMatch = /\..+$/.exec( pathName );
+					const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+
+					res.status( 200 )
+						.set( "Content-Type", mime )
+						.set( "Content-Length", stat.size )
+						.set( "Last-Modified", new Date( stat.mtime ).toUTCString() )
+						.end();
+				} else {
+					res.status( 404 ).send( "no such file" );
+				}
+			} );
+		}
 	};
+}
+
+/**
+ * Responds to client requesting folder.
+ *
+ * @param {string} pathName path name of folder requested by client
+ * @param {ServerResponse} res response descriptor
+ * @returns {void}
+ */
+function checkFolder( pathName, res ) {
+	File.stat( Path.join( pathName, "index.html" ), ( statError, stat ) => {
+		if ( statError || !stat || !stat.isFile() ) {
+			res
+				.status( 403 )
+				.send( "access on folder list forbidden" );
+		} else {
+			res
+				.status( 301 )
+				.set( "Location", "./index.html" )
+				.send( "is directory, see index.html" );
+		}
+	} );
 }

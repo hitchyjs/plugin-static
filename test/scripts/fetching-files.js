@@ -37,7 +37,7 @@ require( "should" );
 require( "should-http" );
 
 
-describe( "Hitchy plugin static", () => {
+describe( "On fetching files Hitchy plugin static", () => {
 	let server = null;
 
 	before( "starting Hitchy", () => {
@@ -90,91 +90,6 @@ describe( "Hitchy plugin static", () => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "text/css" );
 				res.body.toString().trim().should.be.equal( "test.css" );
-			} );
-	} );
-
-	it( "is delivering same file via different but overlapping providers", () => {
-		return Promise.all( [
-			HitchyDev.query.get( "/media/sub/media/an-image.gif" ),
-			HitchyDev.query.get( "/media/an-image.gif" ),
-		] )
-			.then( ( [ resA, resB ] ) => {
-				resA.should.have.status( 200 );
-				resA.headers["content-type"].should.be.equal( "image/gif" );
-				resA.body.toString().trim().should.be.equal( "an-image.gif" );
-
-				resB.should.have.status( 200 );
-				resB.headers["content-type"].should.be.equal( "image/gif" );
-				resB.body.toString().trim().should.be.equal( "an-image.gif" );
-			} );
-	} );
-
-	it( "rejects accessing files outside of scope of provided folder", () => {
-		return HitchyDev.query.get( "/media/sub/../test.html" )
-			.then( res => {
-				res.should.have.status( 400 );
-				res.body.toString().trim().should.not.be.equal( "test.html" );
-			} );
-	} );
-
-	it( "accepts accessing files using .. not leaving scope of provided folder", () => {
-		return HitchyDev.query.get( "/media/sub/media/../test.css" )
-			.then( res => {
-				res.should.have.status( 200 );
-				res.headers["content-type"].should.be.equal( "text/css" );
-				res.body.toString().trim().should.be.equal( "test.css" );
-			} );
-	} );
-
-	it( "accepts accessing files using . in route", () => {
-		return HitchyDev.query.get( "/media/sub/./test.css" )
-			.then( res => {
-				res.should.have.status( 200 );
-				res.headers["content-type"].should.be.equal( "text/css" );
-				res.body.toString().trim().should.be.equal( "test.css" );
-			} );
-	} );
-
-	it( "rejects requests using other method than GET", () => {
-		return Promise.all( [
-			HitchyDev.query.get( "/files/test.html" ),
-			HitchyDev.query.post( "/files/test.html" ),
-			HitchyDev.query.put( "/files/test.html" ),
-			HitchyDev.query.delete( "/files/test.html" ),
-		] )
-			.then( ( [ get, post, put, del ] ) => {
-				get.should.have.status( 200 );
-				get.body.toString().trim().should.be.equal( "test.html" );
-
-				post.should.have.status( 400 );
-				post.body.toString().trim().should.not.be.equal( "test.html" );
-
-				put.should.have.status( 400 );
-				put.body.toString().trim().should.not.be.equal( "test.html" );
-
-				del.should.have.status( 400 );
-				del.body.toString().trim().should.not.be.equal( "test.html" );
-			} );
-	} );
-
-	it( "rejects requests addressing folder w/o index.html", () => {
-		return HitchyDev.query.get( "/files/section-a" )
-			.then( res => {
-				res.should.have.status( 404 );
-			} );
-	} );
-
-	it( "redirects to index.html on requesting folder w/ index.html", () => {
-		return Promise.all( [
-			HitchyDev.query.get( "/media" ),
-			HitchyDev.query.get( "/media/sub/media/" ),
-		] )
-			.then( ( [ resA, resB ] ) => {
-				resA.should.have.status( 301 );
-				resA.headers["location"].should.be.equal( "./index.html" );
-
-				resB.should.have.status( 301 );
-				resB.headers["location"].should.be.equal( "./index.html" );
 			} );
 	} );
 } );
