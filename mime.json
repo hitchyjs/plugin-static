@@ -1,0 +1,44 @@
+{
+	".html": "text/html",
+	".htm": "text/html",
+	".xhtml": "application/xhtml+xml",
+	".gz": "application/gzip",
+	".js": "application/javascript",
+	".json": "application/json",
+	".xml": "application/xml",
+	".pdf": "application/pdf",
+	".ps": "application/postscript",
+	".eps": "application/postscript",
+	".ai": "application/postscript",
+
+	".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	".doc": "application/msword",
+	".dot": "application/msword",
+	".ppt": "application/mspowerpoint",
+	".xls": "application/msexcel",
+	".csv": "text/comma-separated-values",
+
+	".txt": "text/plain",
+	".css": "text/css",
+	".rtf": "text/rtf",
+	".conf": "text/plain",
+	".cf": "text/plain",
+	".rc": "text/plain",
+	".ini": "text/plain",
+
+	".bmp": "image/bmp",
+	".gif": "image/gif",
+	".ico": "image/x-icon",
+	".png": "image/png",
+	".svg": "image/svg+xml",
+	".jpe": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".jpg": "image/jpeg",
+
+	".swf": "application/x-shockwave-flash",
+
+	".zip": "application/zip",
+	".tar": "application/x-tar",
+	".cpio": "application/x-cpio"
+}

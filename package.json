@@ -4,7 +4,7 @@
   "description": "Hitchy plugin serving static files",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --ui tdd tests/**/*.js"
+    "test": "mocha --ui tdd test/scripts/**/*.js"
   },
   "repository": {
     "type": "git",
