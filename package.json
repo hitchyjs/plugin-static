@@ -4,7 +4,8 @@
   "description": "Hitchy plugin serving static files",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --ui tdd test/scripts/**/*.js"
+    "test": "mocha --ui tdd test/scripts/**/*.js",
+    "lint": "eslint **/*.js"
   },
   "repository": {
     "type": "git",
