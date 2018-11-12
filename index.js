@@ -118,7 +118,7 @@ function createProvider( folder ) {
 			} );
 
 			stream.once( "data", () => {
-				const extensionMatch = /\..+$/.exec( pathName );
+				const extensionMatch = /\.[^.]+$/.exec( pathName );
 				const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
 				res.status( 200 ).set( "Content-Type", mime );
@@ -140,7 +140,7 @@ function createProvider( folder ) {
 				} else if ( stat.isDirectory() ) {
 					checkFolder( pathName, res );
 				} else if ( stat.isFile() ) {
-					const extensionMatch = /\..+$/.exec( pathName );
+					const extensionMatch = /\.[^.]+$/.exec( pathName );
 					const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
 					res.status( 200 )
