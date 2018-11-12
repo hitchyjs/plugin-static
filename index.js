@@ -51,7 +51,7 @@ module.exports = {
 					throw new TypeError( "static file providers may expose files in scope of your Hitchy project, only" );
 				}
 
-				providers.set( prefix + "/:route*", createProvider( absoluteFolder ) );
+				providers.set( ( prefix === "/" ? "" : prefix ) + "/:route*", createProvider( absoluteFolder ) );
 			}
 		}
 
