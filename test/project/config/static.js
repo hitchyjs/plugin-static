@@ -41,4 +41,9 @@ exports.static = [
 		prefix: "/media/sub",
 		folder: "./files/section-a",
 	},
+	{
+		prefix: "/with-fallback",
+		folder: "./files/section-a/",
+		fallback: "media/an-image.gif",
+	},
 ];

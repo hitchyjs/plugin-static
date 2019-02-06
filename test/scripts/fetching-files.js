@@ -92,4 +92,29 @@ describe( "On fetching files Hitchy plugin static", () => {
 				res.body.toString().trim().should.be.equal( "test.css" );
 			} );
 	} );
+
+	it( "is failing on accessing missing file", () => {
+		return HitchyDev.query.get( "/media/sub/missing.css" )
+			.then( res => {
+				res.should.have.status( 404 );
+				res.headers["content-type"].should.be.equal( "text/plain" );
+				res.body.toString().trim().should.be.equal( "no such file" );
+			} );
+	} );
+
+	it( "is delivering configured fallback on requesting missing file", () => {
+		return HitchyDev.query.get( "/with-fallback/test.css" )
+			.then( res => {
+				res.should.have.status( 200 );
+				res.headers["content-type"].should.be.equal( "text/css" );
+				res.body.toString().trim().should.be.equal( "test.css" );
+
+				return HitchyDev.query.get( "/with-fallback/missing.css" );
+			} )
+			.then( res => {
+				res.should.have.status( 200 );
+				res.headers["content-type"].should.be.equal( "image/gif" );
+				res.body.toString().trim().should.be.equal( "an-image.gif" );
+			} );
+	} );
 } );
