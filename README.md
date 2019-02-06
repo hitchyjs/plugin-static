@@ -28,7 +28,14 @@ exports.static = [
 		prefix: "/media",
 		folder: "media",
 	},
+	{
+		prefix: "/app",
+		folder: "app",
+		fallback: "index.html",
+	},
 ];
 ```
 
 On using a configuration like this requesting pathname **/files/some/file.ext** will respond with content of file **<project-folder>/static/files/some/file.ext**. The plugin supports several common sorts of files delivering any unknown type of file with announced content type **application/octet-stream**.
+
+The last example is configuring fallback to be delivered on requests for actually missing files. This is useful in combination with web applications that handle routes themselves and thus require all routes referring to the the application's bootstrap file.
