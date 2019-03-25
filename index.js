@@ -31,14 +31,17 @@
 const Path = require( "path" );
 const File = require( "fs" );
 const MIME = require( "./mime" );
+const Download = require( "./download" );
 
 
 module.exports = {
 	blueprints( options ) {
 		const { projectFolder } = options;
-		const { runtime: { config: { static: configs = [] } } } = this;
+		const { runtime: { config: { static: configs = [], mime = {}, download = {} } } } = this;
 
 		const providers = new Map();
+		const _mime = Object.assign( {}, MIME, mime );
+		const _download = Object.assign( {}, Download, download );
 
 		if ( Array.isArray( configs ) ) {
 			const numProviders = configs.length;
@@ -51,7 +54,7 @@ module.exports = {
 					throw new TypeError( "static file providers may expose files in scope of your Hitchy project, only" );
 				}
 
-				providers.set( ( prefix === "/" ? "" : prefix ) + "/:route*", createProvider( absoluteFolder, fallback ) );
+				providers.set( ( prefix === "/" ? "" : prefix ) + "/:route*", createProvider( absoluteFolder, fallback, _mime, _download ) );
 			}
 		}
 
@@ -64,9 +67,11 @@ module.exports = {
  *
  * @param {string} folder path name of folder containing all files available for retrieval
  * @param {string=} fallback relative pathname of file to deliver on request for missing file
+ * @param {object<string,string>} mimeMap custom MIME mappings (mapping from filename extensions into MIME IDs)
+ * @param {object<string,boolean>} downloadMap custom mapping of MIME IDs into boolean marking if related file should be exposed for download
  * @return {function(req:IncomingMessage, res:ServerResponse)} handler delivering files in folder on client requesting URL in scope of given prefix
  */
-function createProvider( folder, fallback = null ) {
+function createProvider( folder, fallback = null, mimeMap = {}, downloadMap = {} ) {
 	return function( req, res ) {
 		// check request method
 		let isFetching = false;
@@ -128,7 +133,11 @@ function createProvider( folder, fallback = null ) {
 
 					stream.once( "data", () => {
 						const extensionMatch = /\.[^.]+$/.exec( pathName );
-						const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+						const mime = ( extensionMatch && mimeMap[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+
+						if ( downloadMap[mime] ) {
+							res.set( "Content-Disposition", `attachment; filename=${Path.basename( pathName )}` );
+						}
 
 						res.status( 200 ).set( "Content-Type", mime );
 					} );
@@ -152,7 +161,7 @@ function createProvider( folder, fallback = null ) {
 							reject( Object.assign( new Error( "is directory" ), { code: 301 } ) );
 						} else if ( stat.isFile() ) {
 							const extensionMatch = /\.[^.]+$/.exec( pathName );
-							const mime = ( extensionMatch && MIME[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+							const mime = ( extensionMatch && mimeMap[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
 							res.status( 200 )
 								.set( "Content-Type", mime )

@@ -1,0 +1,36 @@
+{
+	"text/html": false,
+	"application/xhtml+xml": false,
+	"application/gzip": true,
+	"application/javascript": false,
+	"application/json": false,
+	"application/xml": false,
+	"application/pdf": true,
+	"application/postscript": true,
+
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+	"application/msword": true,
+	"application/mspowerpoint": true,
+	"application/msexcel": true,
+	"text/comma-separated-values": true,
+
+	"text/plain": false,
+	"text/css": false,
+	"text/rtf": true,
+
+	"image/bmp": true,
+	"image/gif": false,
+	"image/x-icon": true,
+	"image/png": false,
+	"image/svg+xml": false,
+	"image/jpeg": false,
+
+	"application/x-shockwave-flash": false,
+
+	"application/zip": true,
+	"application/x-tar": true,
+	"application/x-cpio": true,
+
+	"application/octet-stream": true
+}
