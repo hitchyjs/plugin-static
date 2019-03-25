@@ -37,22 +37,23 @@ const Download = require( "./download" );
 module.exports = {
 	blueprints( options ) {
 		const { projectFolder } = options;
-		const { runtime: { config: { static: configs = [], mime = {}, download = {} } } } = this;
+		const { runtime: { config: { static: configs = [] } } } = this;
 
 		const providers = new Map();
-		const _mime = Object.assign( {}, MIME, mime );
-		const _download = Object.assign( {}, Download, download );
 
 		if ( Array.isArray( configs ) ) {
 			const numProviders = configs.length;
 
 			for ( let i = 0; i < numProviders; i++ ) {
-				const { prefix, folder, fallback } = configs[i];
+				const { prefix, folder, fallback, mime, download } = configs[i];
 
 				const absoluteFolder = Path.resolve( projectFolder, folder );
 				if ( absoluteFolder.indexOf( projectFolder ) !== 0 ) {
 					throw new TypeError( "static file providers may expose files in scope of your Hitchy project, only" );
 				}
+
+				const _mime = Object.assign( {}, MIME, mime );
+				const _download = Object.assign( {}, Download, download );
 
 				providers.set( ( prefix === "/" ? "" : prefix ) + "/:route*", createProvider( absoluteFolder, fallback, _mime, _download ) );
 			}
