@@ -1,6 +1,6 @@
 {
   "name": "hitchy-plugin-static",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Hitchy plugin serving static files",
   "main": "index.js",
   "scripts": {
