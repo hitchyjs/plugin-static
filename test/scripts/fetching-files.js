@@ -43,7 +43,7 @@ describe( "On fetching files Hitchy plugin static", () => {
 	before( "starting Hitchy", () => {
 		return HitchyDev.start( {
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			extensionFolder: Path.resolve( __dirname, "../.." ),
+			pluginsFolder: Path.resolve( __dirname, "../.." ),
 			options: {
 				debug: false,
 			},

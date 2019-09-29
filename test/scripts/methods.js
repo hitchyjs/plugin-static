@@ -43,7 +43,7 @@ describe( "Hitchy plugin static", () => {
 	before( "starting Hitchy", () => {
 		return HitchyDev.start( {
 			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			extensionFolder: Path.resolve( __dirname, "../.." ),
+			pluginsFolder: Path.resolve( __dirname, "../.." ),
 			options: {
 				debug: false,
 			},
@@ -87,13 +87,13 @@ describe( "Hitchy plugin static", () => {
 			.then( ( [ html, js ] ) => {
 				html.should.have.status( 200 );
 				html.body.toString().should.be.empty();
-				html.headers.should.have.property( "content-type" );
+				html.headers.should.not.have.property( "content-type" );
 				html.headers.should.have.property( "content-length" );
 				html.headers.should.have.property( "last-modified" );
 
 				js.should.have.status( 200 );
 				js.body.toString().should.be.empty();
-				js.headers.should.have.property( "content-type" );
+				js.headers.should.not.have.property( "content-type" );
 				js.headers.should.have.property( "content-length" );
 				js.headers.should.have.property( "last-modified" );
 			} );

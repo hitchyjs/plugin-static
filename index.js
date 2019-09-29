@@ -37,7 +37,7 @@ const Download = require( "./download" );
 module.exports = {
 	blueprints( options ) {
 		const { projectFolder } = options;
-		const { runtime: { config: { static: configs = [] } } } = this;
+		const { config: { static: configs = [] } } = this;
 
 		const providers = new Map();
 
