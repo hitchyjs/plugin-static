@@ -1,5 +1,6 @@
 .idea
 test
 .eslintignore
+.eslintrc
 .gitignore
 .travis.yml
