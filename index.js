@@ -211,7 +211,7 @@ module.exports = {
 									} else {
 										res
 											.status( 301 )
-											.set( "Location", Path.posix.join( prefix, ...route, "index.html" ) )
+											.set( "Location", Path.posix.join( prefix, ...( route || [] ), "index.html" ) )
 											.send( "is directory, see index.html" );
 									}
 								} );
