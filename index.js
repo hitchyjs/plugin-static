@@ -34,17 +34,16 @@ const MIME = require( "./mime" );
 const Download = require( "./download" );
 
 
-module.exports = function( options ) {
-	const { projectFolder } = options;
-	const { config: { static: configs = [] } } = this;
+module.exports = {
+	blueprints( options ) {
+		const { projectFolder } = options;
+		const { config: { static: configs = [] } } = this;
 
 	const logDebug = this.log( "hitchy:static:debug" );
 	const providers = new Map();
 
-	return {
-		blueprints() {
-			if ( Array.isArray( configs ) ) {
-				const numProviders = configs.length;
+		if ( Array.isArray( configs ) ) {
+			const numProviders = configs.length;
 
 				for ( let i = 0; i < numProviders; i++ ) {
 					const { prefix, folder, fallback, mime, download } = configs[i];
@@ -63,9 +62,8 @@ module.exports = function( options ) {
 				}
 			}
 
-			return providers;
-		},
-	};
+		return providers;
+
 
 	/**
 	 * Creates file provider delivering files in client request.
@@ -229,12 +227,15 @@ module.exports = function( options ) {
 							res.send( "accessing file or folder forbidden" );
 							break;
 
-						case 500 :
-						default :
-							res.send( "error on processing request for fetching selected file" );
-							break;
-					}
-				} );
-		};
-	}
+							case 500 :
+							default :
+								logError( "delivering static file failed: %s", error.statusCode ? error.message : error.stack );
+
+								res.send( "error on processing request for fetching selected file" );
+								break;
+						}
+					} );
+			};
+		}
+	},
 };
