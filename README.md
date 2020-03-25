@@ -54,6 +54,6 @@ On using a configuration like this requesting pathname **/files/some/file.ext** 
 
 The last example is including additionally supported configuration parameters:
  
-* `fallback` selects a file to be delivered on requests for actually missing files. This is useful in combination with web applications that handle routes themselves and thus require all routes referring to the the application's bootstrap file.
+* `fallback` selects a file to be delivered on requests for actually missing files. This is useful in combination with web applications that handle routes themselves and thus require all routes referring to the application's bootstrap file.
 * `mime` is a map of filename extensions into MIME types to be exposed when providing file matching either extension. This map is merged with an internal map and may extend the latter or replace existing records with different MIME types.
 * `download` is a map of MIME types into booleans controlling whether files of either MIME type should be exposed for download or not. The provided map is merged with some internally defined one and may add new entries as well as replace existing ones.
