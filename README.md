@@ -11,7 +11,7 @@ MIT
 In a Hitchy-based project run this command to add this plugin as a dependency:
 
 ```bash
-npm install -S hitchy-plugin-static
+npm install hitchy-plugin-static
 ```
 
 ## Configuration
@@ -50,7 +50,7 @@ exports.static = [
 ];
 ```
 
-On using a configuration like this requesting pathname **/files/some/file.ext** will respond with content of file **<project-folder>/static/files/some/file.ext**. The plugin supports several common sorts of files delivering any unknown type of file with announced content type **application/octet-stream**.
+On using a configuration like this, requesting pathname **/files/some/file.ext** will respond with content of file **<project-folder>/static/files/some/file.ext**. The plugin supports several common sorts of files delivering any unknown type of file with announced content type **application/octet-stream**.
 
 The last example is including additionally supported configuration parameters:
  
