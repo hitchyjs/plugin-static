@@ -48,7 +48,7 @@ module.exports = {
 			const numProviders = configs.length;
 
 			for ( let i = 0; i < numProviders; i++ ) {
-				const { prefix, folder, fallback, mime, download } = configs[i];
+				const { prefix, folder, fallback, mime, download, preProcess, postProcess } = configs[i];
 
 				const absoluteFolder = Path.resolve( projectFolder, folder );
 				if ( absoluteFolder.indexOf( projectFolder ) !== 0 ) {
@@ -60,7 +60,13 @@ module.exports = {
 
 				logDebug( "adding blueprint route exposing %s at %s with fallback %s", absoluteFolder, prefix, fallback );
 
-				providers.set( ( prefix === "/" ? "" : prefix ) + "/:route*", createProvider( absoluteFolder, fallback, _mime, _download ) );
+				providers.set( ( prefix === "/" ? "" : prefix ) + "/:route*", createProvider( absoluteFolder, fallback, {
+					prefix,
+					mime: _mime,
+					download: _download,
+					preProcess,
+					postProcess,
+				} ) );
 			}
 		}
 
@@ -72,11 +78,14 @@ module.exports = {
 		 *
 		 * @param {string} folder path name of folder containing all files available for retrieval
 		 * @param {string=} fallback relative pathname of file to deliver on request for missing file
-		 * @param {object<string,string>} mimeMap custom MIME mappings (mapping from filename extensions into MIME IDs)
-		 * @param {object<string,boolean>} downloadMap custom mapping of MIME IDs into boolean marking if related file should be exposed for download
+		 * @param {string} prefix prefix for URL path of static file provider to create
+		 * @param {object<string,string>} mime custom MIME mappings (mapping from filename extensions into MIME IDs)
+		 * @param {object<string,boolean>} download custom mapping of MIME IDs into boolean marking if related file should be exposed for download
+		 * @param {function(pathname):Promise} filter custom callback invoked for deciding whether deliver some requested file or not
+		 * @param {function} process custom callback invoked for optionally processing content of delivered file
 		 * @return {function(req:IncomingMessage, res:ServerResponse)} handler delivering files in folder on client requesting URL in scope of given prefix
 		 */
-		function createProvider( folder, fallback = null, mimeMap = {}, downloadMap = {} ) {
+		function createProvider( folder, fallback = null, { prefix, mime = {}, download = {}, filter = null, process = null } ) {
 			return function( req, res ) {
 				// check request method
 				let isFetching = false;
@@ -140,13 +149,13 @@ module.exports = {
 
 							stream.once( "data", () => {
 								const extensionMatch = /\.[^.]+$/.exec( pathName );
-								const mime = ( extensionMatch && mimeMap[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+								const mimeType = ( extensionMatch && mime[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
-								if ( downloadMap[mime] ) {
+								if ( download[mimeType] ) {
 									res.set( "Content-Disposition", `attachment; filename=${Path.basename( pathName )}` );
 								}
 
-								res.status( 200 ).set( "Content-Type", mime );
+								res.status( 200 ).set( "Content-Type", mimeType );
 							} );
 
 							stream.once( "end", () => resolve( true ) );
@@ -168,10 +177,10 @@ module.exports = {
 									reject( new Services.HttpException( 301, "is directory" ) );
 								} else if ( stat.isFile() ) {
 									const extensionMatch = /\.[^.]+$/.exec( pathName );
-									const mime = ( extensionMatch && mimeMap[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+									const mimeType = ( extensionMatch && mime[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
 
 									res.status( 200 )
-										.set( "Content-Type", mime )
+										.set( "Content-Type", mimeType )
 										.set( "Content-Length", stat.size )
 										.set( "Last-Modified", new Date( stat.mtime ).toUTCString() )
 										.end();
@@ -202,7 +211,7 @@ module.exports = {
 									} else {
 										res
 											.status( 301 )
-											.set( "Location", "./index.html" )
+											.set( "Location", Path.posix.join( prefix, ...route, "index.html" ) )
 											.send( "is directory, see index.html" );
 									}
 								} );
