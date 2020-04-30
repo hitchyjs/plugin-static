@@ -36,8 +36,9 @@ const Download = require( "./download" );
 
 module.exports = {
 	blueprints( options ) {
+		const api = this;
 		const { projectFolder } = options;
-		const { config: { static: configs = [] }, runtime: { services: Services } } = this;
+		const { config: { static: configs = [] }, runtime: { services: Services } } = api;
 
 		const logDebug = this.log( "hitchy:static:debug" );
 		const logError = this.log( "hitchy:static:error" );
@@ -48,7 +49,7 @@ module.exports = {
 			const numProviders = configs.length;
 
 			for ( let i = 0; i < numProviders; i++ ) {
-				const { prefix, folder, fallback, mime, download, preProcess, postProcess } = configs[i];
+				const { prefix, folder, fallback, mime, download, filter, process } = configs[i];
 
 				const absoluteFolder = Path.resolve( projectFolder, folder );
 				if ( absoluteFolder.indexOf( projectFolder ) !== 0 ) {
@@ -64,8 +65,8 @@ module.exports = {
 					prefix,
 					mime: _mime,
 					download: _download,
-					preProcess,
-					postProcess,
+					filter,
+					process,
 				} ) );
 			}
 		}
@@ -81,12 +82,17 @@ module.exports = {
 		 * @param {string} prefix prefix for URL path of static file provider to create
 		 * @param {object<string,string>} mime custom MIME mappings (mapping from filename extensions into MIME IDs)
 		 * @param {object<string,boolean>} download custom mapping of MIME IDs into boolean marking if related file should be exposed for download
-		 * @param {function(pathname):Promise} filter custom callback invoked for deciding whether deliver some requested file or not
-		 * @param {function} process custom callback invoked for optionally processing content of delivered file
+		 * @param {StaticFilterCallback} filter custom callback invoked for deciding whether deliver some requested file or not
+		 * @param {StaticProcessCallback} process custom callback invoked for optionally redirecting provided stream for reading file's content
 		 * @return {function(req:IncomingMessage, res:ServerResponse)} handler delivering files in folder on client requesting URL in scope of given prefix
 		 */
-		function createProvider( folder, fallback = null, { prefix, mime = {}, download = {}, filter = null, process = null } ) {
+		function createProvider( folder, fallback = null, {
+			prefix, mime = {}, download = {},
+			filter = null, process = null
+		} ) {
 			return function( req, res ) {
+				const that = this;
+
 				// check request method
 				let isFetching = false;
 				let isTesting = false;
@@ -103,11 +109,11 @@ module.exports = {
 
 				if ( !isFetching && !isTesting ) {
 					res.status( 400 ).send( "GET or HEAD method allowed, only" );
-					return;
+					return undefined;
 				}
 
 
-				const { route } = req.params;
+				const { route = [] } = req.params;
 
 
 				/**
@@ -115,93 +121,107 @@ module.exports = {
 				 * response to processed request.
 				 *
 				 * @param {string[]} segments segments or fragments of relative pathname addressing file in context of provided folder
+				 * @param {boolean} actual set true if this time it's trying actually requested file (instead of fallback)
 				 * @return {Promise<boolean>} promises true on having sent file, false on testing file succeeded, rejects with error w/ HTTP-like status code
 				 */
-				function tryFile( segments ) {
+				function tryFile( segments, actual ) {
 					return new Promise( ( resolve, reject ) => {
-						const pathName = Path.resolve( folder, ...segments || [] );
+						const pathName = Path.resolve( folder, ...segments );
 						if ( pathName.indexOf( folder ) !== 0 ) {
 							reject( new Services.HttpException( 400, "invalid path name beyond document root" ) );
 							return;
 						}
 
-						logDebug( "trying %s", pathName );
+						const urlPath = Path.posix.join( ...segments );
 
-						if ( isFetching ) {
-							const stream = File.createReadStream( pathName, {
-								flags: "r",
-							} );
+						Promise.resolve( typeof filter === "function" ? filter.call( that, urlPath, pathName, actual ) : undefined )
+							.then( () => {
+								// request has passed filter
+								logDebug( "trying %s", pathName );
 
-							stream.on( "error", error => {
-								switch ( error.code ) {
-									case "ENOENT" :
+								if ( isFetching ) {
+									return Promise.resolve( File.createReadStream( pathName, {
+										flags: "r",
+									} ) )
+										.then( stream => ( typeof process === "function" ? process.call( that, urlPath, pathName, stream ) : stream ) )
+										.then( stream => {
+											if ( stream ) {
+												stream.on( "error", error => {
+													switch ( error.code ) {
+														case "ENOENT" :
+															reject( Object.assign( error, { statusCode: 404 } ) );
+															break;
+
+														case "EISDIR" :
+															reject( Object.assign( error, { statusCode: 301 } ) );
+															break;
+
+														default :
+															reject( Object.assign( error, { statusCode: 500 } ) );
+													}
+												} );
+
+												stream.once( "data", () => {
+													const extensionMatch = /\.[^.]+$/.exec( pathName );
+													const mimeType = ( extensionMatch && mime[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+
+													if ( download[mimeType] ) {
+														res.set( "Content-Disposition", `attachment; filename=${Path.basename( pathName )}` );
+													}
+
+													res.status( 200 ).set( "Content-Type", mimeType );
+												} );
+
+												stream.once( "end", () => resolve( true ) );
+
+												stream.pipe( res );
+											}
+										} );
+								}
+
+								// request is testing for file existing
+								File.stat( pathName, ( error, stat ) => {
+									if ( error ) {
+										switch ( error.code ) {
+											case "ENOENT" :
+												reject( Object.assign( error, { statusCode: 404 } ) );
+												break;
+
+											default :
+												reject( Object.assign( error, { statusCode: 500 } ) );
+										}
+									} else if ( stat.isDirectory() ) {
+										reject( new Services.HttpException( 301, "is directory" ) );
+									} else if ( stat.isFile() ) {
+										const extensionMatch = /\.[^.]+$/.exec( pathName );
+										const mimeType = ( extensionMatch && mime[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+
+										res.status( 200 )
+											.set( "Content-Type", mimeType )
+											.set( "Content-Length", stat.size )
+											.set( "Last-Modified", new Date( stat.mtime ).toUTCString() )
+											.end();
+
+										resolve( false );
+									} else {
 										reject( Object.assign( error, { statusCode: 404 } ) );
-										break;
-
-									case "EISDIR" :
-										reject( Object.assign( error, { statusCode: 301 } ) );
-										break;
-
-									default :
-										reject( Object.assign( error, { statusCode: 500 } ) );
-								}
-							} );
-
-							stream.once( "data", () => {
-								const extensionMatch = /\.[^.]+$/.exec( pathName );
-								const mimeType = ( extensionMatch && mime[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
-
-								if ( download[mimeType] ) {
-									res.set( "Content-Disposition", `attachment; filename=${Path.basename( pathName )}` );
-								}
-
-								res.status( 200 ).set( "Content-Type", mimeType );
-							} );
-
-							stream.once( "end", () => resolve( true ) );
-
-							stream.pipe( res );
-						} else {
-							// request is testing for file existing
-							File.stat( pathName, ( error, stat ) => {
-								if ( error ) {
-									switch ( error.code ) {
-										case "ENOENT" :
-											reject( Object.assign( error, { statusCode: 404 } ) );
-											break;
-
-										default :
-											reject( Object.assign( error, { statusCode: 500 } ) );
 									}
-								} else if ( stat.isDirectory() ) {
-									reject( new Services.HttpException( 301, "is directory" ) );
-								} else if ( stat.isFile() ) {
-									const extensionMatch = /\.[^.]+$/.exec( pathName );
-									const mimeType = ( extensionMatch && mime[extensionMatch[0].toLowerCase()] ) || "application/octet-stream";
+								} );
 
-									res.status( 200 )
-										.set( "Content-Type", mimeType )
-										.set( "Content-Length", stat.size )
-										.set( "Last-Modified", new Date( stat.mtime ).toUTCString() )
-										.end();
-
-									resolve( false );
-								} else {
-									reject( Object.assign( error, { statusCode: 404 } ) );
-								}
-							} );
-						}
+								return undefined;
+							} )
+							.catch( reject );
 					} );
 				}
 
 
-				logDebug( "handling request for %s", route ? route.join( "/" ) : "<root>" );
+				logDebug( "handling request for %s", route.join( "/" ) || "<root>" );
 
-				tryFile( route )
+				return tryFile( route, true )
 					.catch( error => {
 						switch ( error.statusCode ) {
 							case 301 : {
-								const pathName = Path.resolve( folder, ...route || [] );
+								const pathName = Path.resolve( folder, ...route );
 
 								File.stat( Path.join( pathName, "index.html" ), ( statError, stat ) => {
 									if ( statError || !stat || !stat.isFile() ) {
@@ -211,16 +231,17 @@ module.exports = {
 									} else {
 										res
 											.status( 301 )
-											.set( "Location", Path.posix.join( prefix, ...( route || [] ), "index.html" ) )
+											.set( "Location", Path.posix.join( prefix, ...route, "index.html" ) )
 											.send( "is directory, see index.html" );
 									}
 								} );
+
 								return undefined;
 							}
 
 							case 404 :
 								if ( fallback ) {
-									return tryFile( [fallback] );
+									return tryFile( [fallback], false );
 								}
 
 							// falls through
@@ -252,3 +273,12 @@ module.exports = {
 		}
 	},
 };
+
+
+/**
+ * @typedef {function(this:HitchyRequestContext, urlPath:string, filePath:string, requested:boolean):Promise<void>} StaticFilterCallback
+ */
+
+/**
+ * @typedef {function(this:HitchyRequestContext, urlPath:string, filePath:string, data:ReadableStream):?ReadableStream} StaticProcessCallback
+ */
