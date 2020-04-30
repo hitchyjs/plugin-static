@@ -38,27 +38,20 @@ require( "should-http" );
 
 
 describe( "On fetching folders Hitchy plugin static", () => {
-	let server = null;
+	const ctx = {};
 
-	before( "starting Hitchy", () => {
-		return HitchyDev.start( {
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			options: {
-				debug: false,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		options: {
+			debug: false,
+		},
+	} ) );
 
-	after( "stopping Hitchy", () => {
-		return server ? HitchyDev.stop( server ) : undefined;
-	} );
+	after( HitchyDev.after( ctx ) );
 
 	it( "rejects requests addressing folder w/o index.html", () => {
-		return HitchyDev.query.get( "/files/section-a" )
+		return ctx.get( "/files/section-a" )
 			.then( res => {
 				res.should.have.status( 403 );
 			} );
@@ -66,15 +59,15 @@ describe( "On fetching folders Hitchy plugin static", () => {
 
 	it( "redirects to index.html on requesting folder w/ index.html", () => {
 		return Promise.all( [
-			HitchyDev.query.get( "/media" ),
-			HitchyDev.query.get( "/media/sub/media/" ),
+			ctx.get( "/media" ),
+			ctx.get( "/media/sub/media/" ),
 		] )
 			.then( ( [ resA, resB ] ) => {
 				resA.should.have.status( 301 );
-				resA.headers["location"].should.be.equal( "./index.html" );
+				resA.headers["location"].should.be.equal( "/media/index.html" );
 
 				resB.should.have.status( 301 );
-				resB.headers["location"].should.be.equal( "./index.html" );
+				resB.headers["location"].should.be.equal( "/media/sub/media/index.html" );
 			} );
 	} );
 } );

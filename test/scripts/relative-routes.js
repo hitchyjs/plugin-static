@@ -38,27 +38,20 @@ require( "should-http" );
 
 
 describe( "Using relative segments in request URL Hitchy plugin static", () => {
-	let server = null;
+	const ctx = {};
 
-	before( "starting Hitchy", () => {
-		return HitchyDev.start( {
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			options: {
-				debug: false,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		options: {
+			debug: false,
+		},
+	} ) );
 
-	after( "stopping Hitchy", () => {
-		return server ? HitchyDev.stop( server ) : undefined;
-	} );
+	after( HitchyDev.after( ctx ) );
 
 	it( "rejects accessing files outside of scope of provided folder", () => {
-		return HitchyDev.query.get( "/media/sub/../test.html" )
+		return ctx.get( "/media/sub/../test.html" )
 			.then( res => {
 				res.should.have.status( 400 );
 				res.body.toString().trim().should.not.be.equal( "test.html" );
@@ -66,7 +59,7 @@ describe( "Using relative segments in request URL Hitchy plugin static", () => {
 	} );
 
 	it( "accepts accessing files using .. not leaving scope of provided folder", () => {
-		return HitchyDev.query.get( "/media/sub/media/../test.css" )
+		return ctx.get( "/media/sub/media/../test.css" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "text/css" );
@@ -75,7 +68,7 @@ describe( "Using relative segments in request URL Hitchy plugin static", () => {
 	} );
 
 	it( "accepts accessing files using . in route", () => {
-		return HitchyDev.query.get( "/media/sub/./test.css" )
+		return ctx.get( "/media/sub/./test.css" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "text/css" );

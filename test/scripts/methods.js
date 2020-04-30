@@ -38,31 +38,24 @@ require( "should-http" );
 
 
 describe( "Hitchy plugin static", () => {
-	let server = null;
+	const ctx = {};
 
-	before( "starting Hitchy", () => {
-		return HitchyDev.start( {
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			options: {
-				debug: false,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		options: {
+			debug: false,
+		},
+	} ) );
 
-	after( "stopping Hitchy", () => {
-		return server ? HitchyDev.stop( server ) : undefined;
-	} );
+	after( HitchyDev.after( ctx ) );
 
 	it( "accepts GET method for fetching, only", () => {
 		return Promise.all( [
-			HitchyDev.query.get( "/files/test.html" ),
-			HitchyDev.query.post( "/files/test.html" ),
-			HitchyDev.query.put( "/files/test.html" ),
-			HitchyDev.query.delete( "/files/test.html" ),
+			ctx.get( "/files/test.html" ),
+			ctx.post( "/files/test.html" ),
+			ctx.put( "/files/test.html" ),
+			ctx.delete( "/files/test.html" ),
 		] )
 			.then( ( [ get, post, put, del ] ) => {
 				get.should.have.status( 200 );
@@ -81,8 +74,8 @@ describe( "Hitchy plugin static", () => {
 
 	it( "supports HEAD method for testing", () => {
 		return Promise.all( [
-			HitchyDev.query.request( "HEAD", "/files/test.html" ),
-			HitchyDev.query.request( "HEAD", "/files/test.js" ),
+			ctx.request( "HEAD", "/files/test.html" ),
+			ctx.request( "HEAD", "/files/test.js" ),
 		] )
 			.then( ( [ html, js ] ) => {
 				html.should.have.status( 200 );

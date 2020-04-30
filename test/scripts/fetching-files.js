@@ -38,27 +38,20 @@ require( "should-http" );
 
 
 describe( "On fetching files Hitchy plugin static", () => {
-	let server = null;
+	const ctx = {};
 
-	before( "starting Hitchy", () => {
-		return HitchyDev.start( {
-			testProjectFolder: Path.resolve( __dirname, "../project" ),
-			pluginsFolder: Path.resolve( __dirname, "../.." ),
-			options: {
-				debug: false,
-			},
-		} )
-			.then( instance => {
-				server = instance;
-			} );
-	} );
+	before( HitchyDev.before( ctx, {
+		testProjectFolder: Path.resolve( __dirname, "../project" ),
+		pluginsFolder: Path.resolve( __dirname, "../.." ),
+		options: {
+			debug: false,
+		},
+	} ) );
 
-	after( "stopping Hitchy", () => {
-		return server ? HitchyDev.stop( server ) : undefined;
-	} );
+	after( HitchyDev.after( ctx ) );
 
 	it( "is delivering selected Javascript file", () => {
-		return HitchyDev.query.get( "/files/test.js" )
+		return ctx.get( "/files/test.js" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "application/javascript" );
@@ -67,7 +60,7 @@ describe( "On fetching files Hitchy plugin static", () => {
 	} );
 
 	it( "is delivering selected HTML file", () => {
-		return HitchyDev.query.get( "/files/test.html" )
+		return ctx.get( "/files/test.html" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "text/html" );
@@ -76,7 +69,7 @@ describe( "On fetching files Hitchy plugin static", () => {
 	} );
 
 	it( "is delivering selected XML file", () => {
-		return HitchyDev.query.get( "/files/data.xml" )
+		return ctx.get( "/files/data.xml" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "application/xml" );
@@ -85,7 +78,7 @@ describe( "On fetching files Hitchy plugin static", () => {
 	} );
 
 	it( "is delivering selected CSS file (using static provider overlapping w/ another one)", () => {
-		return HitchyDev.query.get( "/media/sub/test.css" )
+		return ctx.get( "/media/sub/test.css" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "text/css" );
@@ -94,22 +87,22 @@ describe( "On fetching files Hitchy plugin static", () => {
 	} );
 
 	it( "is failing on accessing missing file", () => {
-		return HitchyDev.query.get( "/media/sub/missing.css" )
+		return ctx.get( "/media/sub/missing.css" )
 			.then( res => {
 				res.should.have.status( 404 );
-				res.headers["content-type"].should.be.equal( "text/plain" );
+				res.headers["content-type"].should.match( /text\/plain\b/ );
 				res.body.toString().trim().should.be.equal( "no such file" );
 			} );
 	} );
 
 	it( "is delivering configured fallback on requesting missing file", () => {
-		return HitchyDev.query.get( "/with-fallback/test.css" )
+		return ctx.get( "/with-fallback/test.css" )
 			.then( res => {
 				res.should.have.status( 200 );
 				res.headers["content-type"].should.be.equal( "text/css" );
 				res.body.toString().trim().should.be.equal( "test.css" );
 
-				return HitchyDev.query.get( "/with-fallback/missing.css" );
+				return ctx.get( "/with-fallback/missing.css" );
 			} )
 			.then( res => {
 				res.should.have.status( 200 );
