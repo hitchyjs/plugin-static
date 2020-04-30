@@ -27,12 +27,12 @@
     "eslint": "^6.8.0",
     "eslint-config-cepharum": "^1.0.11",
     "eslint-plugin-promise": "^4.2.1",
-    "hitchy-server-dev-tools": "^0.1.6",
-    "mocha": "^7.1.1",
+    "hitchy-server-dev-tools": "^0.2.1",
+    "mocha": "^7.1.2",
     "should": "^13.2.3",
     "should-http": "^0.1.1"
   },
   "peerDependencies": {
-    "hitchy": "^0.5.2"
+    "hitchy": "^0.6.2"
   }
 }
